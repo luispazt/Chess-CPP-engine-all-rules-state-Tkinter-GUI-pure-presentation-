@@ -1,0 +1,6 @@
+WHITE_SQUARE = "#ebecd0"
+BLACK_SQUARE = "#779656"
+SELECTED = "#f0c080"
+TARGET = "#77aa77"
+LAST_MOVE = "#ffee88"
+CHECK = "#ff6666"
