@@ -1,14 +1,11 @@
 build/
 minimax_test/
 
-cpp/tests/
-
 python/__pycache__/
 python/ui/__pycache__/
 python/assets/
 python/Debug/
 python/Release/
-python/tests/
 
 *.exe
 *.so

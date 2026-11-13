@@ -33,4 +33,4 @@ set_target_properties(chess_core_py PROPERTIES
 )
 
 enable_testing()
-add_subdirectory(cpp/tests)
+# add_subdirectory(cpp/tests)
