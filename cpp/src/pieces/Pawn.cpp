@@ -12,7 +12,7 @@ std::vector<Move> Pawn::pseudoLegalMoves(const Board& board, Square from) const 
     std::vector<Move> moves;
     int dir = (color_ == Color::White) ? 1 : -1;
     int startRank = (color_ == Color::White) ? 1 : 6;
-    int promotionRank = (color_ == Color::White) ? 7 : 0;
+    int promotionRank = (color_ == Color::White) ? 6 : 1;
 
     Square oneStep;
     oneStep.index = from.index + dir * 8;

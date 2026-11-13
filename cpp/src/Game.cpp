@@ -1,5 +1,10 @@
 ﻿#include "chess/Game.h"
 #include "chess/Serialization.h"
+#include "chess/Pawn.h"
+#include "chess/Knight.h"
+#include "chess/Bishop.h"
+#include "chess/Rook.h"
+#include "chess/Queen.h"
 #include <algorithm>
 #include <sstream>
 
@@ -76,7 +81,13 @@ void Game::undo() {
     history_.pop_back();
 
     // Reverse the move: move piece from to back to from
-    board_.set(info.move.from, board_.take(info.move.to));
+    Color side = opponent(turn_);
+    if (info.move.promotion.has_value()) {
+        board_.take(info.move.to); // remove promoted piece
+        board_.set(info.move.from, std::make_unique<Pawn>(side));
+    } else {
+        board_.set(info.move.from, board_.take(info.move.to));
+    }
     // Restore captured piece
     if (info.epCaptured.has_value()) {
         board_.set(*info.epCaptured, std::move(info.captured));
@@ -228,7 +239,18 @@ std::vector<Move> Game::generatePseudoLegal(Color side) const {
     return moves;
 }
 bool Game::isLegal(const Move& m) const {
-    // Castling validation
+    // Promotion validity
+    Piece* pp = board_.at(m.from);
+    if (pp && pp->type() == PieceType::Pawn) {
+        int lastRank = (pp->color() == Color::White) ? 7 : 0;
+        if (m.to.rank() == lastRank) {
+            if (!m.promotion.has_value()) return false;
+        } else if (m.promotion.has_value()) {
+            return false;
+        }
+    } else if (m.promotion.has_value()) {
+        return false;
+    }
     bool castleKS = m.castleKingside;
     bool castleQS = m.castleQueenside;
     Piece* kp = board_.at(m.from);
@@ -343,15 +365,33 @@ void Game::apply(const Move& m) {
     info.move.castleKingside = castleKS;
     info.move.castleQueenside = castleQS;
 
+    bool pawnMove = (moved && moved->type() == PieceType::Pawn);
+    bool wasCapture = isEp || (info.captured != nullptr);
+
+    std::unique_ptr<Piece> placed;
+    if (moved && moved->type() == PieceType::Pawn && m.promotion.has_value()) {
+        Color c = moved->color();
+        switch (*m.promotion) {
+            case PieceType::Queen:  placed = std::make_unique<Queen>(c); break;
+            case PieceType::Rook:   placed = std::make_unique<Rook>(c); break;
+            case PieceType::Bishop: placed = std::make_unique<Bishop>(c); break;
+            case PieceType::Knight: placed = std::make_unique<Knight>(c); break;
+            default: placed = std::move(moved); break;
+        }
+    } else {
+        placed = std::move(moved);
+    }
+
     undoStack_.push_back(std::move(info));
     history_.push_back(m);
 
-    board_.set(m.to, std::move(moved));
+    board_.set(m.to, std::move(placed));
     if (isEp) {
         board_.set(epSquare, nullptr);
     }
     turn_ = opponent(turn_);
     if (turn_ == Color::White) ++fullmoveNumber_;
+    if (pawnMove || wasCapture) halfmoveClock_ = 0; else ++halfmoveClock_;
 }
 
 }
