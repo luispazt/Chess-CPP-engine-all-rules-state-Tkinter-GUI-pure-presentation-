@@ -35,7 +35,7 @@ cmake --build build -j
 
 Windows
 
-```bash
+```powershell
 cmake -S . -B build -G Ninja -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
 cmake --build build -j
 ```
@@ -44,7 +44,15 @@ The `chess_core` extension module is placed directly in `python/`, so no install
 
 ## Run
 
+Linux
+
 ```bash
+python3 python/main.py
+```
+
+Windows
+
+```powershell
 python python/main.py
 ```
 

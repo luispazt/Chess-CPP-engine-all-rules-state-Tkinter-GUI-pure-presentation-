@@ -49,6 +49,26 @@ class App(tk.Tk):
                 file += 1
         return False
 
+    def _piece_char_at(self, square, state):
+        board = state.get("board", "")
+        rank = 7
+        file = 0
+        for ch in board:
+            if ch == "/":
+                rank -= 1
+                file = 0
+            elif ch.isdigit():
+                file += int(ch)
+            else:
+                if chr(ord("a") + file) + str(rank + 1) == square:
+                    return ch
+                file += 1
+        return None
+
+    def _prompt_promotion(self):
+        dlg = PromotionDialog(self)
+        return dlg.result or "q"
+
     def _on_square_click(self, square):
         if getattr(self, "_animating", False):
             return
@@ -60,10 +80,15 @@ class App(tk.Tk):
         if self._selected is None:
             if self._own_piece_at(square, st):
                 self._selected = square
-                self._targets = [u[-2:] for u in self.engine.legal_moves(square)]
+                self._targets = [u[2:4] for u in self.engine.legal_moves(square)]
                 self._capture_targets = self._compute_captures(square, self._targets, st)
         elif square in self._targets:
             uci = self._selected + square
+            piece_char = self._piece_char_at(self._selected, st)
+            is_promo = (piece_char is not None and piece_char.lower() == "p" and square[1] in ("1", "8")) or \
+                       (any(len(u) == 5 for u in self.engine.legal_moves(self._selected)) and square[1] in ("1", "8"))
+            if is_promo:
+                uci += self._prompt_promotion()
             if self.engine.try_move(uci):
                 src = self._selected
                 dst = square
@@ -82,7 +107,7 @@ class App(tk.Tk):
                 animating = True
         elif self._own_piece_at(square, st):
             self._selected = square
-            self._targets = [u[-2:] for u in self.engine.legal_moves(square)]
+            self._targets = [u[2:4] for u in self.engine.legal_moves(square)]
             self._capture_targets = self._compute_captures(square, self._targets, st)
         else:
             self._selected, self._targets, self._capture_targets = None, [], []
@@ -97,7 +122,7 @@ class App(tk.Tk):
         if not self._own_piece_at(square, st):
             return
         self._selected = square
-        self._targets = [u[-2:] for u in self.engine.legal_moves(square)]
+        self._targets = [u[2:4] for u in self.engine.legal_moves(square)]
         self._capture_targets = self._compute_captures(square, self._targets, st)
         self.board.show_move_highlights(square, self._targets, self._capture_targets)
 
@@ -148,7 +173,7 @@ class App(tk.Tk):
         if not self._own_piece_at(start, st):
             return False
 
-        targets = [u[-2:] for u in self.engine.legal_moves(start)]
+        targets = [u[2:4] for u in self.engine.legal_moves(start)]
         if end not in targets:
             return False
 
@@ -167,8 +192,9 @@ class App(tk.Tk):
                 if chr(ord("a") + file) + str(rank + 1) == start:
                     piece_char = ch
                 file += 1
-        if piece_char is not None and piece_char.lower() == "p" and end[1] in ("1", "8"):
-            uci += "q"
+        if (piece_char is not None and piece_char.lower() == "p" and end[1] in ("1", "8")) or \
+                (any(len(u) == 5 for u in self.engine.legal_moves(start)) and end[1] in ("1", "8")):
+            uci += self._prompt_promotion()
 
         if not self.engine.try_move(uci):
             return False
